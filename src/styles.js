@@ -85,7 +85,7 @@ export const cardStyles = css`
      ========================================================================== */
   .tank-scale {
     position: absolute;
-    left: -35px;          /* Ajustement de la distance gauche */
+    left: -85px;          /* Ajustement de la distance gauche */
     top: 25px;            /* Aligné avec le début de la zone transparente */
     bottom: 25px;         /* Aligné avec le fond de la cuve */
     width: 30px;
