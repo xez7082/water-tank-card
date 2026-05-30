@@ -1,1 +1,7 @@
-
+{
+  "name": "Water Tank Monitor Card",
+  "render_readme": true,
+  "filename": "dist/water-tank-card.js",
+  "hide_default_version": false,
+  "content_in_root": false
+}
