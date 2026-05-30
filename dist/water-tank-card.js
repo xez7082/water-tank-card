@@ -1,5 +1,8 @@
 import { LitElement, html } from "https://unpkg.com/lit@3/index.js?module";
-import { cardStyles } from "./styles.js";
+
+// CORRECTION DES CHEMINS : On remonte d'un dossier pour quitter "dist" et aller chercher dans "src"
+import { cardStyles } from "../src/styles.js";
+import "../src/water-tank-editor.js"; 
 
 class WaterTankCard extends LitElement {
   // Liaison avec le fichier styles.js
