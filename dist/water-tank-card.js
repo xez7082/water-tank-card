@@ -3,19 +3,32 @@ import { cardStyles } from "./styles.js";
 
 class WaterTankCard extends LitElement {
   // Liaison avec le fichier styles.js
-  static styles = cardStyles;
+  static get styles() {
+    return cardStyles;
+  }
 
-  static properties = {
-    hass: {},
-    _level: { state: true },
-    _volume: { state: true },
-    _inflow: { state: true },
-    _usage: { state: true },
-    _remaining: { state: true }
-  };
+  // Déclaration des propriétés réactives et internes de Lit
+  static get properties() {
+    return {
+      hass: {},
+      config: {},
+      _level: { type: Number, state: true },
+      _volume: { type: Number, state: true },
+      _inflow: { type: String, state: true },
+      _usage: { type: String, state: true },
+      _remaining: { type: String, state: true }
+    };
+  }
 
   constructor() {
     super();
+    // Valeurs par défaut pour éviter le rendu de valeurs "undefined" au premier cycle
+    this._level = 0;
+    this._volume = 0;
+    this._inflow = "--";
+    this._usage = "--";
+    this._remaining = "--";
+
     // Génère les propriétés des bulles une seule fois pour éviter le clignotement au re-render
     this._bubbles = Array.from({ length: 15 }, () => ({
       left: Math.random() * 100,
@@ -25,19 +38,26 @@ class WaterTankCard extends LitElement {
     }));
   }
 
+  // Liaison avec l'interface graphique de configuration de Home Assistant
   static getConfigElement() {
-    return document.createElement("water-tank-card-editor");
+    return document.createElement("water-tank-editor");
   }
 
+  // Configuration par défaut lors de la prévisualisation ou création initiale
   static getStubConfig() {
     return {
       title: "Cuve Eau",
       subtitle: "Surveillance",
       capacity: 3000,
-      tank_level_entity: ""
+      tank_level_entity: "",
+      tank_volume_entity: "",
+      inflow_entity: "",
+      usage_entity: "",
+      remaining_days_entity: ""
     };
   }
 
+  // Application et validation de la configuration YAML reçue
   setConfig(config) {
     if (!config.tank_level_entity) {
       throw new Error("L'entité 'tank_level_entity' est requise.");
@@ -51,33 +71,40 @@ class WaterTankCard extends LitElement {
     };
   }
 
+  // Interception et extraction en temps réel des données d'états de Home Assistant
   set hass(hass) {
     this._hass = hass;
+    if (!hass || !this.config) return;
 
-    // Récupération sécurisée du niveau
+    // 1. Récupération sécurisée du niveau (Conversion en float)
     const levelState = hass.states[this.config.tank_level_entity];
-    this._level = levelState ? Number(levelState.state) : 0;
+    this._level = levelState && !isNaN(parseFloat(levelState.state)) ? parseFloat(levelState.state) : 0;
 
-    // Récupération du volume (ou calcul basé sur la capacité si l'entité n'est pas fournie)
-    if (this.config.tank_volume_entity) {
+    // 2. Récupération ou calcul dynamique du volume en Litres
+    if (this.config.tank_volume_entity && hass.states[this.config.tank_volume_entity]) {
       const volumeState = hass.states[this.config.tank_volume_entity];
-      this._volume = volumeState ? Number(volumeState.state) : 0;
+      this._volume = volumeState && !isNaN(parseFloat(volumeState.state)) ? parseFloat(volumeState.state) : 0;
     } else {
+      // Règle de trois proportionnelle basée sur le % actuel et la capacité max
       this._volume = Math.round((this._level / 100) * this.config.capacity);
     }
 
-    // Récupération des statistiques optionnelles
-    this._inflow = this.config.inflow_entity 
-      ? (hass.states[this.config.inflow_entity]?.state || "--") 
+    // 3. Récupération des capteurs de statistiques optionnels (avec repli si indisponibles)
+    this._inflow = this.config.inflow_entity && hass.states[this.config.inflow_entity]
+      ? hass.states[this.config.inflow_entity].state
       : "--";
 
-    this._usage = this.config.usage_entity 
-      ? (hass.states[this.config.usage_entity]?.state || "--") 
+    this._usage = this.config.usage_entity && hass.states[this.config.usage_entity]
+      ? hass.states[this.config.usage_entity].state
       : "--";
 
-    this._remaining = this.config.remaining_days_entity 
-      ? (hass.states[this.config.remaining_days_entity]?.state || "--") 
+    this._remaining = this.config.remaining_days_entity && hass.states[this.config.remaining_days_entity]
+      ? hass.states[this.config.remaining_days_entity].state
       : "--";
+  }
+
+  get hass() {
+    return this._hass;
   }
 
   getCardSize() {
@@ -85,7 +112,7 @@ class WaterTankCard extends LitElement {
   }
 
   render() {
-    if (!this._hass || !this.config) return html``;
+    if (!this.hass || !this.config) return html``;
 
     return html`
       <ha-card>
@@ -98,6 +125,7 @@ class WaterTankCard extends LitElement {
   }
 
   renderTank() {
+    // Contrainte stricte pour éviter que l'eau ne sorte visuellement de la cuve (0 à 100%)
     const level = Math.max(0, Math.min(100, this._level));
 
     return html`
@@ -173,6 +201,10 @@ class WaterTankCard extends LitElement {
   }
 
   renderStats() {
+    // Détermination de l'affichage du pluriel pour l'autonomie restante
+    const isPlural = this._remaining !== "1" && this._remaining !== "0" && this._remaining !== "--";
+    const dayLabel = isPlural ? "jours" : "jour";
+
     return html`
       <div class="stats-panel">
         <div class="stats-header">
@@ -198,7 +230,7 @@ class WaterTankCard extends LitElement {
           "#5dff7f",
           "Entrée aujourd'hui",
           this._inflow,
-          "L"
+          this._inflow !== "--" ? "L" : ""
         )}
 
         ${this.renderStatCard(
@@ -206,7 +238,7 @@ class WaterTankCard extends LitElement {
           "#ff9f43",
           "Consommation",
           this._usage,
-          "L"
+          this._usage !== "--" ? "L" : ""
         )}
 
         ${this.renderStatCard(
@@ -214,7 +246,7 @@ class WaterTankCard extends LitElement {
           "#8b5cf6",
           "Autonomie restante",
           this._remaining,
-          this._remaining === "1" || this._remaining === "0" ? "jour" : "jours"
+          this._remaining !== "--" ? dayLabel : ""
         )}
       </div>
     `;
@@ -249,10 +281,10 @@ class WaterTankCard extends LitElement {
   }
 }
 
-// Définition de l'élément personnalisé
+// Définition de l'élément personnalisé auprès du navigateur
 customElements.define("water-tank-card", WaterTankCard);
 
-// Déclaration pour que Home Assistant le détecte dans la liste des cartes personnalisées
+// Déclaration pour que Home Assistant l'ajoute à la liste des cartes personnalisées détectables
 window.customCards = window.customCards || [];
 window.customCards.push({
   type: "water-tank-card",
