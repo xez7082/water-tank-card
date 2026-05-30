@@ -1,4 +1,4 @@
-import { cardStyles } from "../src/styles.js"; // À adapter dans water-tank-editor.js si besoin
+import { LitElement, html, css } from "https://unpkg.com/lit@3/index.js?module";
 
 export class WaterTankEditor extends LitElement {
   // Indique à Home Assistant quelles sont les propriétés réactives
@@ -7,6 +7,61 @@ export class WaterTankEditor extends LitElement {
       hass: {},
       _config: {}
     };
+  }
+
+  // Isolation et optimisation des styles natifs de l'éditeur
+  static get styles() {
+    return css`
+      .card-config {
+        display: flex;
+        flex-direction: column;
+        gap: 20px;
+        padding: 8px;
+      }
+      .config-section {
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+        padding: 16px;
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        border-radius: 12px;
+        background: rgba(0, 0, 0, 0.15);
+      }
+      .section-title {
+        font-size: 16px;
+        font-weight: bold;
+        color: var(--secondary-text-color, #2ea8ff);
+        margin-bottom: 4px;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        padding-bottom: 6px;
+      }
+      ha-textfield {
+        width: 100%;
+      }
+      .select-field {
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+      }
+      .select-field label {
+        font-size: 13px;
+        color: var(--secondary-text-color, #cbd5e1);
+      }
+      select {
+        width: 100%;
+        padding: 12px;
+        border-radius: 4px;
+        border: 1px solid var(--ha-card-border-color, rgba(255, 255, 255, 0.2));
+        background-color: var(--card-background-color, #1c2538);
+        color: var(--primary-text-color, #ffffff);
+        font-size: 14px;
+        outline: none;
+        cursor: pointer;
+      }
+      select:focus {
+        border-color: var(--primary-color, #2ea8ff);
+      }
+    `;
   }
 
   // Configuration initiale reçue de Home Assistant
@@ -28,7 +83,7 @@ export class WaterTankEditor extends LitElement {
     // Extraction des entités de type capteur de Home Assistant pour peupler les listes déroulantes
     const sensors = Object.keys(this.hass.states).filter(
       (eid) => eid.startsWith("sensor.") || eid.startsWith("input_number.")
-    );
+    ).sort(); // Tri alphabétique pour plus de confort visuel
 
     return html`
       <div class="card-config">
@@ -71,7 +126,7 @@ export class WaterTankEditor extends LitElement {
 
           <div class="select-field">
             <label>Volume d'eau actuel (en Litres)*</label>
-            <select .value="${this._config.volume_entity || ""}" .configValue="${"volume_entity"}" @change="${this._valueChanged}">
+            <select .value="${this._config.tank_volume_entity || ""}" .configValue="${"tank_volume_entity"}" @change="${this._valueChanged}">
               <option value="">-- Choisir une entité --</option>
               ${sensors.map(eid => html`<option value="${eid}">${eid}</option>`)}
             </select>
@@ -102,58 +157,6 @@ export class WaterTankEditor extends LitElement {
           </div>
         </div>
       </div>
-
-      <style>
-        .card-config {
-          display: flex;
-          flex-direction: column;
-          gap: 20px;
-          padding: 8px;
-        }
-        .config-section {
-          display: flex;
-          flex-direction: column;
-          gap: 12px;
-          padding: 16px;
-          border: 1px solid rgba(255, 255, 255, 0.1);
-          border-radius: 12px;
-          background: rgba(0, 0, 0, 0.15);
-        }
-        .section-title {
-          font-size: 16px;
-          font-weight: bold;
-          color: var(--secondary-text-color, #2ea8ff);
-          margin-bottom: 4px;
-          border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-          padding-bottom: 6px;
-        }
-        ha-textfield {
-          width: 100%;
-        }
-        .select-field {
-          display: flex;
-          flex-direction: column;
-          gap: 4px;
-        }
-        .select-field label {
-          font-size: 13px;
-          color: var(--secondary-text-color, #cbd5e1);
-        }
-        select {
-          width: 100%;
-          padding: 12px;
-          border-radius: 4px;
-          border: 1px solid var(--ha-card-border-color, rgba(255, 255, 255, 0.2));
-          background-color: var(--card-background-color, #1c2538);
-          color: var(--primary-text-color, #ffffff);
-          font-size: 14px;
-          outline: none;
-          cursor: pointer;
-        }
-        select:focus {
-          border-color: var(--primary-color, #2ea8ff);
-        }
-      </style>
     `;
   }
 
@@ -167,7 +170,7 @@ export class WaterTankEditor extends LitElement {
     // Détermination de la valeur selon le type de champ
     let newValue = target.value;
     if (target.type === "number") {
-      newValue = Number(newValue);
+      newValue = target.value === "" ? "" : Number(target.value);
     }
 
     // Si la valeur n'a pas changé, on ignore
