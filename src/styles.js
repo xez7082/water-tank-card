@@ -34,6 +34,13 @@ export const cardStyles = css`
     backdrop-filter: blur(20px);
     -webkit-backdrop-filter: blur(20px);
     padding: 24px;
+    transition: border-color 0.3s ease, box-shadow 0.3s ease;
+  }
+
+  /* Animation & Style de sécurité si le binaire d'alerte s'active */
+  .tank-alert-active {
+    border: 1px solid rgba(255, 82, 82, 0.4) !important;
+    box-shadow: 0 0 20px rgba(255, 82, 82, 0.25), 0 15px 40px rgba(0, 0, 0, 0.55) !important;
   }
 
   /* Structure de Grille Principale */
@@ -381,6 +388,7 @@ export const cardStyles = css`
   .stat-card:hover {
     transform: translateX(4px);
     border-color: rgba(255, 255, 255, 0.12);
+    box-shadow: 0 8px 25px rgba(0, 200, 255, 0.15); /* Fallback de sécurité */
     box-shadow: 0 8px 25px color-mix(in srgb, var(--card-color) 25%, transparent);
   }
 
@@ -392,6 +400,7 @@ export const cardStyles = css`
     display: flex;
     align-items: center;
     justify-content: center;
+    background: rgba(255, 255, 255, 0.05); /* Fallback */
     background: color-mix(in srgb, var(--card-color) 15%, transparent);
     color: var(--card-color);
     border: 1px solid color-mix(in srgb, var(--card-color) 20%, transparent);
@@ -439,31 +448,16 @@ export const cardStyles = css`
   }
 
   /* ==========================================================================
-     GRAPH RECTILIGNE INTEGRÉ (Sparklines)
+     SECTION INTERNE DU BANDEAU BAS TECHNIQUE
      ========================================================================== */
-  .sparkline {
-    position: absolute;
-    right: 16px;
-    top: 14px;
-    width: 75px;
-    height: 26px;
-    overflow: visible;
-    pointer-events: none;
-  }
-
-  /* Bas de page des Statistiques */
-  .stats-footer {
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    font-size: 11px;
-    color: rgba(255, 255, 255, 0.35);
-    margin-top: 4px;
-    padding-left: 2px;
-  }
-
-  .stats-footer ha-icon {
-    --mdc-icon-size: 14px;
+  .tank-technical-footer {
+    background: rgba(255, 255, 255, 0.02);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    border-top: 1px solid rgba(255, 255, 255, 0.06);
+    border-bottom-left-radius: var(--ha-card-border-radius, 32px);
+    border-bottom-right-radius: var(--ha-card-border-radius, 32px);
+    margin: 16px -24px -24px -24px; /* Étire le bandeau sur les bords de la carte */
   }
 
   /* ==========================================================================
@@ -472,6 +466,10 @@ export const cardStyles = css`
   @media (max-width: 768px) {
     ha-card {
       padding: 16px;
+    }
+
+    .tank-technical-footer {
+      margin: 16px -16px -16px -16px;
     }
     
     .water-tank-dashboard {
@@ -495,7 +493,7 @@ export const cardStyles = css`
     }
 
     .stat-card:hover {
-      transform: none; /* Désactive le décalage sur mobile pour une meilleure fluidité tactique */
+      transform: none; /* Désactive le décalage sur mobile pour éviter les bugs tactiles */
     }
   }
 `;
