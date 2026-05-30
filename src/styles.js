@@ -80,51 +80,55 @@ export const cardStyles = css`
     justify-content: center;
   }
 
-  /* ==========================================================================
-     ÉCHELLE DE GRADUATION
+/* ==========================================================================
+     ÉCHELLE DE GRADUATION (Ajustée au pixel près contre la cuve)
      ========================================================================== */
   .tank-scale {
     position: absolute;
-    left: -45px;
-    top: 10px;
-    bottom: 10px;
-    width: 35px;
+    left: -35px;          /* Ajustement de la distance gauche */
+    top: 25px;            /* Aligné avec le début de la zone transparente */
+    bottom: 25px;         /* Aligné avec le fond de la cuve */
+    width: 30px;
     display: flex;
     flex-direction: column;
     justify-content: space-between;
     align-items: flex-end;
     color: rgba(255, 255, 255, 0.4);
-    font-size: 13px;
-    font-weight: 500;
+    font-size: 12px;
+    font-weight: 600;
+    z-index: 15;          /* Passe au-dessus des reflets */
+    pointer-events: none;
   }
 
+  /* Ligne verticale de la jauge */
   .tank-scale::before {
     content: "";
     position: absolute;
-    right: -12px;
+    right: -8px;          /* Rapprochement de la ligne contre le bord de la cuve */
     top: 0;
     width: 2px;
     height: 100%;
     background: linear-gradient(
       to bottom,
-      rgba(255, 255, 255, 0.2),
-      rgba(255, 255, 255, 0.05)
+      rgba(255, 255, 255, 0.3),
+      rgba(255, 255, 255, 0.1)
     );
   }
 
+  /* Pointeur physique dynamique */
   .tank-indicator {
     position: absolute;
-    right: -19px;
-    width: 16px;
-    height: 6px;
+    right: -13px;         /* Ajusté pour mordre pile sur la ligne */
+    width: 12px;
+    height: 4px;
     border-radius: 50px;
     background: var(--blue2);
     transform: translateY(50%);
     box-shadow: 
-      0 0 10px var(--blue2),
-      0 0 20px var(--blue2);
+      0 0 8px var(--blue2),
+      0 0 15px var(--blue2);
     transition: bottom 0.8s cubic-bezier(0.22, 0.61, 0.36, 1);
-    z-index: 5;
+    z-index: 20;
   }
 
   /* ==========================================================================
