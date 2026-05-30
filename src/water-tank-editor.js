@@ -1,4 +1,4 @@
-import { html, LitElement } from "https://unpkg.com/lit@3/index.js?module";
+import { cardStyles } from "../src/styles.js"; // À adapter dans water-tank-editor.js si besoin
 
 export class WaterTankEditor extends LitElement {
   // Indique à Home Assistant quelles sont les propriétés réactives
