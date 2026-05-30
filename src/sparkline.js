@@ -1,70 +1,165 @@
-renderSparkline(values = [], color = "#2ea8ff") {
+class SparklineCard extends HTMLElement {
 
-  if (!values.length) {
-    values = [12,18,15,22,28,25,32,30,38,35,42,40];
+  setConfig(config) {
+
+    if (!config.entity)
+      throw new Error("Entity required");
+
+    this.config = {
+      color: "#2ea8ff",
+      hours: 24,
+      fill: true,
+      ...config
+    };
   }
 
-  const width = 100;
-  const height = 30;
+  set hass(hass) {
 
-  const min = Math.min(...values);
-  const max = Math.max(...values);
+    this._hass = hass;
 
-  const range = Math.max(max - min, 1);
+    if (!this.shadowRoot) {
 
-  const points = values
-    .map((v, i) => {
+      this.attachShadow({ mode: "open" });
 
-      const x =
-        (i / (values.length - 1)) * width;
+      this.shadowRoot.innerHTML = `
+        <style>
 
-      const y =
-        height -
-        ((v - min) / range) * height;
+          ha-card{
+            padding:12px;
+            background:var(--ha-card-background);
+            border-radius:16px;
+          }
 
-      return `${x},${y}`;
-    })
-    .join(" ");
+          svg{
+            width:100%;
+            height:60px;
+          }
 
-  return html`
-    <svg
-      class="sparkline"
-      viewBox="0 0 ${width} ${height}"
-      preserveAspectRatio="none"
-    >
+        </style>
 
-      <defs>
+        <ha-card>
+          <svg id="chart"
+               viewBox="0 0 100 40"
+               preserveAspectRatio="none">
+          </svg>
+        </ha-card>
+      `;
 
-        <linearGradient
-          id="sparkFill"
-          x1="0"
-          y1="0"
-          x2="0"
-          y2="1"
-        >
-          <stop
-            offset="0%"
-            stop-color="${color}"
-            stop-opacity="0.4"
-          />
-          <stop
-            offset="100%"
-            stop-color="${color}"
-            stop-opacity="0"
-          />
-        </linearGradient>
+      this.loadHistory();
+    }
+  }
 
-      </defs>
+  async loadHistory() {
+
+    try {
+
+      const end = new Date();
+
+      const start =
+        new Date(
+          end.getTime() -
+          this.config.hours * 3600000
+        );
+
+      const url =
+        `history/period/${start.toISOString()}`
+        + `?filter_entity_id=${this.config.entity}`
+        + `&end_time=${end.toISOString()}`;
+
+      const result =
+        await this._hass.callApi(
+          "GET",
+          url
+        );
+
+      const history =
+        result?.[0] || [];
+
+      const values =
+        history
+          .map(x => Number(x.state))
+          .filter(x => !isNaN(x));
+
+      this.draw(values);
+
+    } catch(err) {
+
+      console.error(err);
+
+    }
+  }
+
+  draw(values) {
+
+    const svg =
+      this.shadowRoot.getElementById("chart");
+
+    if (!values.length) return;
+
+    const width = 100;
+    const height = 40;
+
+    const min =
+      Math.min(...values);
+
+    const max =
+      Math.max(...values);
+
+    const range =
+      Math.max(max - min, 1);
+
+    const points =
+      values.map((v,i)=>{
+
+        const x =
+          (i/(values.length-1))*width;
+
+        const y =
+          height -
+          ((v-min)/range)*height;
+
+        return `${x},${y}`;
+
+      }).join(" ");
+
+    const last =
+      points.split(" ").pop().split(",");
+
+    svg.innerHTML = `
 
       <polyline
-        fill="none"
-        stroke="${color}"
-        stroke-width="2.5"
-        stroke-linecap="round"
-        stroke-linejoin="round"
         points="${points}"
+        fill="none"
+        stroke="${this.config.color}"
+        stroke-width="2.5"
+        stroke-linejoin="round"
+        stroke-linecap="round"
       />
 
-    </svg>
-  `;
+      <circle
+        cx="${last[0]}"
+        cy="${last[1]}"
+        r="3"
+        fill="${this.config.color}"
+      />
+    `;
+  }
+
+  getCardSize() {
+    return 1;
+  }
 }
+
+customElements.define(
+  "sparkline-card",
+  SparklineCard
+);
+
+window.customCards = window.customCards || [];
+
+window.customCards.push({
+  type: "sparkline-card",
+  name: "Sparkline Card",
+  description:
+    "Simple Sparkline Graph Card"
+});
