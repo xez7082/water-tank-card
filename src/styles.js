@@ -14,6 +14,7 @@ export const cardStyles = css`
     --purple: #8b5cf6;
     
     display: block;
+    width: 100%; /* Force l'hôte à occuper 100% */
   }
 
   /* ==========================================================================
@@ -35,21 +36,23 @@ export const cardStyles = css`
     -webkit-backdrop-filter: blur(20px);
     padding: 24px;
     transition: border-color 0.3s ease, box-shadow 0.3s ease;
+    width: 100%;
+    box-sizing: border-box;
   }
 
-  /* Animation & Style de sécurité si le binaire d'alerte s'active */
   .tank-alert-active {
     border: 1px solid rgba(255, 82, 82, 0.4) !important;
     box-shadow: 0 0 20px rgba(255, 82, 82, 0.25), 0 15px 40px rgba(0, 0, 0, 0.55) !important;
   }
 
-  /* Structure de Grille Principale */
+  /* Structure de Grille Principale rééquilibrée à 50% / 50% pour remplir l'espace */
   .water-tank-dashboard {
     display: grid;
-    grid-template-columns: 1.15fr 0.85fr;
-    gap: 24px;
-    min-height: 560px;
+    grid-template-columns: 1fr 1fr;
+    gap: 32px;
+    min-height: 500px;
     align-items: center;
+    width: 100%;
   }
 
   /* ==========================================================================
@@ -66,18 +69,19 @@ export const cardStyles = css`
     gap: 16px;
   }
 
-  /* Structure d'alignement Jauge + Cuve */
+  /* Suppression de la largeur fixe (300px) -> Prend toute la place allouée */
   .tank-container {
     position: relative;
-    width: 300px;
-    height: 480px;
+    width: 100%;
+    max-width: 360px; /* Légère retenue pour garder une forme de cuve harmonieuse */
+    height: 440px;
     display: flex;
     align-items: center;
     justify-content: center;
   }
 
   /* ==========================================================================
-     ÉCHELLE DE GRADUATION (Jauge verticale)
+     ÉCHELLE DE GRADUATION
      ========================================================================== */
   .tank-scale {
     position: absolute;
@@ -94,7 +98,6 @@ export const cardStyles = css`
     font-weight: 500;
   }
 
-  /* Ligne d'ancrage de la graduation */
   .tank-scale::before {
     content: "";
     position: absolute;
@@ -109,7 +112,6 @@ export const cardStyles = css`
     );
   }
 
-  /* Pointeur physique dynamique */
   .tank-indicator {
     position: absolute;
     right: -19px;
@@ -132,7 +134,7 @@ export const cardStyles = css`
     position: relative;
     width: 100%;
     height: 100%;
-    border-radius: 60px 60px 35px 35px;
+    border-radius: 50px 50px 30px 30px;
     overflow: hidden;
     background: rgba(255, 255, 255, 0.02);
     border: 5px solid rgba(255, 255, 255, 0.12);
@@ -143,7 +145,6 @@ export const cardStyles = css`
       0 15px 45px rgba(0, 0, 0, 0.5);
   }
 
-  /* Reflet Brillance Métallique Latéral (Gauche) */
   .tank::before {
     content: "";
     position: absolute;
@@ -161,7 +162,6 @@ export const cardStyles = css`
     pointer-events: none;
   }
 
-  /* Reflet Lumineux Supérieur (Dôme en verre) */
   .tank::after {
     content: "";
     position: absolute;
@@ -194,7 +194,6 @@ export const cardStyles = css`
     transition: height 1.5s cubic-bezier(0.22, 0.61, 0.36, 1);
   }
 
-  /* Lueur Néon de surface de l'eau */
   .water-glow {
     position: absolute;
     top: -15px;
@@ -206,7 +205,6 @@ export const cardStyles = css`
     z-index: 2;
   }
 
-  /* Reflet de brillance interne à l'eau (Droite) */
   .water-reflection {
     position: absolute;
     top: 0;
@@ -219,7 +217,7 @@ export const cardStyles = css`
   }
 
   /* ==========================================================================
-     VAGUES ANIMÉES (SVG)
+     VAGUES ANIMÉES
      ========================================================================== */
   .wave {
     position: absolute;
@@ -254,7 +252,7 @@ export const cardStyles = css`
   }
 
   /* ==========================================================================
-     BULLES DE FOND DYNAMIQUES
+     BULLES DE FOND
      ========================================================================== */
   .bubble {
     position: absolute;
@@ -280,7 +278,7 @@ export const cardStyles = css`
   }
 
   /* ==========================================================================
-     TEXTE SUPERPOSÉ SUR LA CUVE (Overlay)
+     TEXTE SUPERPOSÉ
      ========================================================================== */
   .tank-overlay {
     position: absolute;
@@ -311,10 +309,9 @@ export const cardStyles = css`
     text-shadow: 0 2px 8px rgba(0, 0, 0, 0.7);
   }
 
-  /* Pied de cuve (Infos complémentaires bas de section) */
   .tank-footer {
     width: 100%;
-    max-width: 300px;
+    max-width: 360px;
     display: flex;
     justify-content: space-between;
     align-items: center;
@@ -333,12 +330,13 @@ export const cardStyles = css`
   }
 
   /* ==========================================================================
-     PANNEAU DE STATISTIQUES (Righthand Side)
+     PANNEAU DE STATISTIQUES (Prend 100% de sa colonne disponible)
      ========================================================================== */
   .stats-panel {
     display: flex;
     flex-direction: column;
     gap: 14px;
+    width: 100%;
   }
 
   .stats-header {
@@ -370,7 +368,6 @@ export const cardStyles = css`
     color: rgba(255, 255, 255, 0.45);
   }
 
-  /* Tuiles Statistiques Individuelles */
   .stat-card {
     position: relative;
     display: flex;
@@ -383,16 +380,17 @@ export const cardStyles = css`
     -webkit-backdrop-filter: blur(15px);
     overflow: hidden;
     transition: transform 0.25s ease, border-color 0.25s ease, box-shadow 0.25s ease;
+    width: 100%;
+    box-sizing: border-box;
   }
 
   .stat-card:hover {
     transform: translateX(4px);
     border-color: rgba(255, 255, 255, 0.12);
-    box-shadow: 0 8px 25px rgba(0, 200, 255, 0.15); /* Fallback de sécurité */
+    box-shadow: 0 8px 25px rgba(0, 200, 255, 0.15);
     box-shadow: 0 8px 25px color-mix(in srgb, var(--card-color) 25%, transparent);
   }
 
-  /* Conteneur d'icône avec halo adaptatif */
   .stat-icon {
     width: 46px;
     height: 46px;
@@ -400,12 +398,12 @@ export const cardStyles = css`
     display: flex;
     align-items: center;
     justify-content: center;
-    background: rgba(255, 255, 255, 0.05); /* Fallback */
+    background: rgba(255, 255, 255, 0.05);
     background: color-mix(in srgb, var(--card-color) 15%, transparent);
     color: var(--card-color);
     border: 1px solid color-mix(in srgb, var(--card-color) 20%, transparent);
     box-shadow: 0 0 15px color-mix(in srgb, var(--card-color) 20%, transparent);
-    margin-right: 4px;
+    margin-right: 12px;
     flex-shrink: 0;
   }
 
@@ -413,7 +411,6 @@ export const cardStyles = css`
     --mdc-icon-size: 24px;
   }
 
-  /* Organisation du contenu interne textuel */
   .stat-content {
     flex: 1;
     display: grid;
@@ -457,11 +454,13 @@ export const cardStyles = css`
     border-top: 1px solid rgba(255, 255, 255, 0.06);
     border-bottom-left-radius: var(--ha-card-border-radius, 32px);
     border-bottom-right-radius: var(--ha-card-border-radius, 32px);
-    margin: 16px -24px -24px -24px; /* Étire le bandeau sur les bords de la carte */
+    margin: 24px -24px -24px -24px;
+    width: calc(100% + 48px);
+    box-sizing: border-box;
   }
 
   /* ==========================================================================
-     RESPONSIVE (Adaptation Mobiles & Tablettes)
+     RESPONSIVE (Bascule sur une seule colonne sur smartphone)
      ========================================================================= */
   @media (max-width: 768px) {
     ha-card {
@@ -470,6 +469,7 @@ export const cardStyles = css`
 
     .tank-technical-footer {
       margin: 16px -16px -16px -16px;
+      width: calc(100% + 32px);
     }
     
     .water-tank-dashboard {
@@ -479,8 +479,8 @@ export const cardStyles = css`
     }
 
     .tank-container {
-      width: 260px;
-      height: 420px;
+      max-width: 280px;
+      height: 400px;
     }
 
     .tank-scale {
@@ -493,7 +493,7 @@ export const cardStyles = css`
     }
 
     .stat-card:hover {
-      transform: none; /* Désactive le décalage sur mobile pour éviter les bugs tactiles */
+      transform: none;
     }
   }
 `;
