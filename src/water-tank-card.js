@@ -3,29 +3,29 @@ renderSparkline(color = "#2ea8ff") {
   const totalPoints = 12;
   const width = 100;
   const height = 30;
-  const padding = 2; // Évite que l'épaisseur du trait ne déborde en haut ou en bas du SVG
+  const padding = 2; // Empêche l'épaisseur de la ligne ou le point de déborder en haut/bas
 
-  // Génération des points échantillonnés proportionnellement sur la largeur totale (100)
+  // 1. Calcul des points répartis de manière homogène sur la largeur totale (100)
   for (let i = 0; i < totalPoints; i++) {
-    // Calcul de x pour que le premier point soit à 0 et le tout dernier pile à 100
+    // Calcule 'x' pour que le 1er point soit à 0 et le 12e point soit pile à 100
     const x = (i / (totalPoints - 1)) * width;
     
-    // Génération d'une valeur y aléatoire cohérente avec la hauteur (ici entre 10 et 25)
+    // Génère une valeur 'y' aléatoire mais contrainte dans la hauteur du viewBox
     const y = padding + (Math.random() * (height - padding * 2 - 10) + 10);
     
     pointsArray.push({ x, y });
   }
 
-  // Transformation du tableau en chaîne de coordonnées pour la polyline
+  // Transformation des coordonnées en chaînes de caractères pour les attributs SVG
   const pointsStr = pointsArray.map(p => `${p.x},${p.y}`).join(" ");
   
-  // Construction de la zone fermée sous la courbe pour le remplissage
+  // Création de la zone fermée (le polygone) qui descend jusqu'au bas du graphique (y = 30)
   const areaStr = `${pointsStr} ${width},${height} 0,${height}`;
   
-  // Récupération du tout dernier point pour y adosser le cercle lumineux
+  // Récupération du tout dernier point pour y fixer le cercle lumineux animable
   const lastPoint = pointsArray[pointsArray.length - 1];
 
-  // Nettoyage du code couleur hexa pour créer un ID unique et valide pour le dégradé SVG
+  // Nettoyage du code couleur (retrait du '#') pour garantir un ID de dégradé SVG valide
   const cleanColorId = color.replace('#', '');
 
   return html`
