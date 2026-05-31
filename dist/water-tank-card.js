@@ -21,13 +21,16 @@ class WaterTankCard extends LitElement {
       _sensorState: { type: String, state: true },
       _alert: { type: Boolean, state: true },
       
-      // États pour les entités additionnelles
+      // États pour les entités secondaires
       _tempCabane: { type: String, state: true },
       _tempMinAnnuelle: { type: String, state: true },
       _tempMaxAnnuelle: { type: String, state: true },
       _priseBeemState: { type: String, state: true },
       _storeTerrasseState: { type: String, state: true },
-      _storeTerrassePos: { type: Number, state: true }
+      _storeTerrassePos: { type: Number, state: true },
+
+      // État de basculement pour l'affichage Caméras / Stats
+      _showCameras: { type: Boolean, state: true }
     };
   }
 
@@ -49,6 +52,9 @@ class WaterTankCard extends LitElement {
     this._storeTerrasseState = "closed";
     this._storeTerrassePos = 0;
 
+    // Masqué par défaut au démarrage
+    this._showCameras = false;
+
     this._bubbles = Array.from({ length: 15 }, () => ({
       left: Math.random() * 100,
       size: 4 + Math.random() * 8,
@@ -65,7 +71,6 @@ class WaterTankCard extends LitElement {
       title: "Cuves IBC",
       subtitle: "Surveillance",
       capacity: 2000,
-      camera_path: "/lovelace/cameras-exterieures", // Chemin par défaut de la page caméras
       ...config
     };
   }
@@ -123,10 +128,15 @@ class WaterTankCard extends LitElement {
     this.hass.callService("cover", service, { entity_id: "cover.store_terrasse" });
   }
 
-  // Action du bouton caméra intégré
-  _navigateToCameras() {
-    const event = new CustomEvent("navigate", {
-      detail: { path: this.config.camera_path },
+  // Basculer l'affichage entre Caméras et Statistiques
+  _toggleCameras() {
+    this._showCameras = !this._showCameras;
+  }
+
+  // Ouvrir la boîte de dialogue (Popup) native HA au clic sur une caméra
+  _openCameraPopup(entityId) {
+    const event = new CustomEvent("hass-more-info", {
+      detail: { entityId: entityId },
       bubbles: true,
       composed: true
     });
@@ -140,7 +150,7 @@ class WaterTankCard extends LitElement {
       <ha-card class="${this._alert ? 'tank-alert-active' : ''}">
         <div class="water-tank-dashboard">
           ${this.renderTank()}
-          ${this.renderStats()}
+          ${this.renderRightPanel()}
         </div>
         ${this.renderTechnicalFooter()}
       </ha-card>
@@ -196,10 +206,12 @@ class WaterTankCard extends LitElement {
     return html`${this._bubbles.map(b => html`<span class="bubble" style="left: ${b.left}%; width: ${b.size}px; height: ${b.size}px; animation-delay: ${b.delay}s; animation-duration: ${b.duration}s;"></span>`)}`;
   }
 
-  renderStats() {
+  // Gère l'affichage commutable (En-tête commun + Contenu conditionnel)
+  renderRightPanel() {
     return html`
-      <div class="stats-panel">
-        <div class="stats-header" style="display: flex; justify-content: space-between; align-items: flex-start; width: 100%;">
+      <div class="stats-panel" style="flex: 1; display: flex; flex-direction: column;">
+        
+        <div class="stats-header" style="display: flex; justify-content: space-between; align-items: flex-start; width: 100%; margin-bottom: 10px;">
           <div class="stats-title" style="display: flex; gap: 10px; align-items: center;">
             <ha-icon icon="mdi:water"></ha-icon>
             <div>
@@ -208,13 +220,58 @@ class WaterTankCard extends LitElement {
             </div>
           </div>
           
-          <button @click=${this._navigateToCameras} style="display: flex; align-items: center; gap: 6px; background: rgba(52, 211, 153, 0.12); border: 1px solid rgba(52, 211, 153, 0.3); border-radius: 10px; padding: 5px 12px; color: #34d399; font-size: 11px; font-weight: bold; cursor: pointer; transition: all 0.2s; box-shadow: 0 4px 12px rgba(0,0,0,0.15); margin-top: -2px;">
-            <ha-icon icon="mdi:cctv" style="--mdc-icon-size: 14px; color: #34d399;"></ha-icon>
-            Caméras
+          <button @click=${this._toggleCameras} style="display: flex; align-items: center; gap: 6px; background: ${this._showCameras ? 'rgba(52, 211, 153, 0.25)' : 'rgba(255, 255, 255, 0.05)'}; border: 1px solid ${this._showCameras ? '#34d399' : 'rgba(255, 255, 255, 0.1)'}; border-radius: 10px; padding: 5px 12px; color: ${this._showCameras ? '#34d399' : '#fff'}; font-size: 11px; font-weight: bold; cursor: pointer; transition: all 0.2s; box-shadow: 0 4px 12px rgba(0,0,0,0.15); margin-top: -2px;">
+            <ha-icon icon="${this._showCameras ? 'mdi:view-dashboard-outline' : 'mdi:cctv'}" style="--mdc-icon-size: 14px; color: ${this._showCameras ? '#34d399' : '#fff'};"></ha-icon>
+            ${this._showCameras ? "Stats" : "Caméras"}
           </button>
         </div>
 
-        <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; margin-top: 10px;">
+        ${this._showCameras ? this.renderCamerasGrid() : this.renderStatsContent()}
+
+      </div>
+    `;
+  }
+
+  // CONTENU 1 : LES CAMÉRAS EN DIRECT (Grille 2x2)
+  renderCamerasGrid() {
+    const cams = [
+      { id: "camera.garage_exterieur_profile_1_3", label: "Entrée principale" },
+      { id: "camera.carsport_prof0_name", label: "Carsport" },
+      { id: "camera.entre_terrasse_fluide", label: "Petite terrasse" },
+      { id: "camera.ipc_bo_profile000_mainstream", label: "Grande terrasse" }
+    ];
+
+    return html`
+      <div class="cameras-grid" style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; flex: 1; min-height: 240px; animation: fadeIn 0.3s ease-in-out;">
+        ${cams.map(cam => {
+          const stateObj = this.hass.states[cam.id];
+          return html`
+            <div @click=${() => this._openCameraPopup(cam.id)} style="position: relative; background: rgba(0,0,0,0.4); border: 1px solid rgba(255,255,255,0.08); border-radius: 10px; overflow: hidden; cursor: pointer; display: flex; flex-direction: column; justify-content: space-between; aspect-ratio: 16/10;">
+              ${stateObj 
+                ? html`
+                    <ha-camera-stream 
+                      .hass=${this.hass} 
+                      .stateObj=${stateObj} 
+                      style="width: 100%; height: 100%; object-fit: cover;"
+                      controls>
+                    </ha-camera-stream>`
+                : html`<div style="display: flex; align-items: center; justify-content: center; height: 100%; font-size: 11px; color: rgba(255,255,255,0.3);">Flux indisponible</div>`
+              }
+              <div style="position: absolute; bottom: 0; left: 0; right: 0; background: linear-gradient(to top, rgba(0,0,0,0.8), rgba(0,0,0,0)); padding: 4px 8px; font-size: 10px; font-weight: bold; color: #fff; text-shadow: 1px 1px 2px rgba(0,0,0,0.8);">
+                ${cam.label}
+              </div>
+            </div>
+          `;
+        })}
+      </div>
+    `;
+  }
+
+  // CONTENU 2 : LES STATISTIQUES STANDARDS ET ACTIONNEURS
+  renderStatsContent() {
+    return html`
+      <div style="animation: fadeIn 0.3s ease-in-out;">
+        <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px;">
           ${this.renderStatCard("mdi:gauge", "#2ea8ff", "Volume mesuré", `${this._volume} L`, `Niveau: ${Math.round(this._level)}%`)}
           ${this.renderStatCard("mdi:water-plus", "#5dff7f", "Pluie Directe", this._inflow, this._inflow !== "--" ? "L" : "")}
           ${this.renderStatCard("mdi:weather-rainy", "#00d2ff", "Précipitations", this._rain, this._rain !== "--" ? "mm" : "")}
@@ -267,7 +324,6 @@ class WaterTankCard extends LitElement {
 
           </div>
         </div>
-
       </div>
     `;
   }
