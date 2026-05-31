@@ -19,7 +19,15 @@ class WaterTankCard extends LitElement {
       _temp: { type: String, state: true },
       _depth: { type: String, state: true },
       _sensorState: { type: String, state: true },
-      _alert: { type: Boolean, state: true }
+      _alert: { type: Boolean, state: true },
+      
+      // Nouvelles propriétés pour les états des entités ajoutées
+      _tempCabane: { type: String, state: true },
+      _tempMinAnnuelle: { type: String, state: true },
+      _tempMaxAnnuelle: { type: String, state: true },
+      _priseBeemState: { type: String, state: true },
+      _storeTerrasseState: { type: String, state: true },
+      _storeTerrassePos: { type: Number, state: true }
     };
   }
 
@@ -33,6 +41,14 @@ class WaterTankCard extends LitElement {
     this._depth = "--";
     this._sensorState = "--";
     this._alert = false;
+
+    // Initialisation des nouveaux états
+    this._tempCabane = "--";
+    this._tempMinAnnuelle = "--";
+    this._tempMaxAnnuelle = "--";
+    this._priseBeemState = "off";
+    this._storeTerrasseState = "closed";
+    this._storeTerrassePos = 0;
 
     this._bubbles = Array.from({ length: 15 }, () => ({
       left: Math.random() * 100,
@@ -68,7 +84,7 @@ class WaterTankCard extends LitElement {
       this._volume = Math.round((this._level / 100) * this.config.capacity);
     }
 
-    // Extraction des autres capteurs
+    // Extraction des capteurs standards
     this._inflow = this.config.inflow_entity && hass.states[this.config.inflow_entity] ? hass.states[this.config.inflow_entity].state : "--";
     this._rain = this.config.rain_entity && hass.states[this.config.rain_entity] ? hass.states[this.config.rain_entity].state : "--";
     this._temp = this.config.temp_entity && hass.states[this.config.temp_entity] ? hass.states[this.config.temp_entity].state : "--";
@@ -77,10 +93,38 @@ class WaterTankCard extends LitElement {
     
     const alertState = this.config.alert_entity && hass.states[this.config.alert_entity];
     this._alert = alertState ? alertState.state === "on" : false;
+
+    // Extraction dynamique des nouvelles entités demandées
+    const tCabane = hass.states["sensor.tdeg_cabane_temperature"];
+    this._tempCabane = tCabane ? `${parseFloat(tCabane.state).toFixed(1)}°C` : "--";
+
+    const tMin = hass.states["sensor.temperature_minimale_annuelle"];
+    this._tempMinAnnuelle = tMin ? `${parseFloat(tMin.state).toFixed(1)}°C` : "--";
+
+    const tMax = hass.states["sensor.temperature_maximale_annuelle"];
+    this._tempMaxAnnuelle = tMax ? `${parseFloat(tMax.state).toFixed(1)}°C` : "--";
+
+    const pBeem = hass.states["switch.prise_beem_maison"];
+    this._priseBeemState = pBeem ? pBeem.state : "off";
+
+    const sTerrasse = hass.states["cover.store_terrasse"];
+    if (sTerrasse) {
+      this._storeTerrasseState = sTerrasse.state;
+      this._storeTerrassePos = sTerrasse.attributes.current_position ?? 0;
+    }
   }
 
   get hass() { return this._hass; }
-  getCardSize() { return 7; }
+  getCardSize() { return 8; }
+
+  // Méthodes d'interaction pour les commandes et boutons
+  _togglePrise() {
+    this.hass.callService("switch", "toggle", { entity_id: "switch.prise_beem_maison" });
+  }
+
+  _callCover(service) {
+    this.hass.callService("cover", service, { entity_id: "cover.store_terrasse" });
+  }
 
   render() {
     if (!this.hass || !this.config) return html``;
@@ -158,10 +202,60 @@ class WaterTankCard extends LitElement {
           </div>
         </div>
 
-        ${this.renderStatCard("mdi:gauge", "#2ea8ff", "Volume mesuré", `${this._volume} L`, `Niveau: ${Math.round(this._level)}%`)}
-        ${this.renderStatCard("mdi:water-plus", "#5dff7f", "Pluie Directe (Apport)", this._inflow, this._inflow !== "--" ? "L" : "")}
-        ${this.renderStatCard("mdi:weather-rainy", "#00d2ff", "Précipitations Météo", this._rain, this._rain !== "--" ? "mm" : "")}
-        ${this.renderStatCard("mdi:thermometer", "#ff9f43", "Température Extérieure", this._temp, this._temp !== "--" ? "°C" : "")}
+        <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px;">
+          ${this.renderStatCard("mdi:gauge", "#2ea8ff", "Volume mesuré", `${this._volume} L`, `Niveau: ${Math.round(this._level)}%`)}
+          ${this.renderStatCard("mdi:water-plus", "#5dff7f", "Pluie Directe", this._inflow, this._inflow !== "--" ? "L" : "")}
+          ${this.renderStatCard("mdi:weather-rainy", "#00d2ff", "Précipitations", this._rain, this._rain !== "--" ? "mm" : "")}
+          ${this.renderStatCard("mdi:thermometer", "#ff9f43", "Temp. Extérieure", this._temp, this._temp !== "--" ? "°C" : "")}
+        </div>
+
+        <div class="extra-section" style="margin-top: 12px; padding-top: 10px; border-top: 1px solid rgba(255,255,255,0.06);">
+          <div style="font-size: 11px; color: rgba(255,255,255,0.4); font-weight: bold; text-transform: uppercase; margin-bottom: 6px; letter-spacing: 0.5px;">Suivi Températures</div>
+          <div style="display: flex; gap: 8px; justify-content: space-between;">
+            <div style="flex: 1; background: rgba(255,255,255,0.03); border-radius: 8px; padding: 6px 10px; text-align: center;">
+              <div style="font-size: 10px; color: rgba(255,255,255,0.5);">Cabane</div>
+              <div style="font-size: 13px; font-weight: bold; color: #ff9f43; margin-top: 2px;">${this._tempCabane}</div>
+            </div>
+            <div style="flex: 1; background: rgba(255,255,255,0.03); border-radius: 8px; padding: 6px 10px; text-align: center;">
+              <div style="font-size: 10px; color: rgba(255,255,255,0.5);">Min Annuel</div>
+              <div style="font-size: 13px; font-weight: bold; color: #7dd3fc; margin-top: 2px;">${this._tempMinAnnuelle}</div>
+            </div>
+            <div style="flex: 1; background: rgba(255,255,255,0.03); border-radius: 8px; padding: 6px 10px; text-align: center;">
+              <div style="font-size: 10px; color: rgba(255,255,255,0.5);">Max Annuel</div>
+              <div style="font-size: 13px; font-weight: bold; color: #f87171; margin-top: 2px;">${this._tempMaxAnnuelle}</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="extra-section" style="margin-top: 12px; padding-top: 10px; border-top: 1px solid rgba(255,255,255,0.06);">
+          <div style="font-size: 11px; color: rgba(255,255,255,0.4); font-weight: bold; text-transform: uppercase; margin-bottom: 6px; letter-spacing: 0.5px;">Commandes & Équipements</div>
+          <div style="display: flex; flex-direction: column; gap: 6px;">
+            
+            <div style="display: flex; align-items: center; justify-content: space-between; background: rgba(255,255,255,0.03); padding: 6px 10px; border-radius: 8px;">
+              <div style="display: flex; align-items: center; gap: 8px;">
+                <ha-icon icon="mdi:solar-power-variant" style="color: #a78bfa; --mdc-icon-size: 18px;"></ha-icon>
+                <div style="font-size: 12px; font-weight: 500;">Beem Maison</div>
+              </div>
+              <button @click=${this._togglePrise} style="background: ${this._priseBeemState === 'on' ? 'rgba(167,139,250,0.25)' : 'rgba(255,255,255,0.05)'}; border: 1px solid ${this._priseBeemState === 'on' ? '#a78bfa' : 'rgba(255,255,255,0.1)'}; border-radius: 6px; padding: 4px 10px; color: #fff; font-size: 11px; font-weight: bold; cursor: pointer; transition: all 0.2s;">
+                ${this._priseBeemState === "on" ? "Allumé" : "Éteint"}
+              </button>
+            </div>
+
+            <div style="display: flex; align-items: center; justify-content: space-between; background: rgba(255,255,255,0.03); padding: 6px 10px; border-radius: 8px;">
+              <div style="display: flex; align-items: center; gap: 8px;">
+                <ha-icon icon="mdi:blinds" style="color: #34d399; --mdc-icon-size: 18px;"></ha-icon>
+                <div style="font-size: 12px; font-weight: 500;">Store Terrasse <span style="color: rgba(255,255,255,0.4); font-size: 11px;">(${this._storeTerrassePos}%)</span></div>
+              </div>
+              <div style="display: flex; gap: 4px;">
+                <button @click=${() => this._callCover('open_cover')} style="background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); border-radius: 4px; padding: 2px 6px; color: #fff; cursor: pointer;"><ha-icon icon="mdi:arrow-up" style="--mdc-icon-size: 14px;"></ha-icon></button>
+                <button @click=${() => this._callCover('stop_cover')} style="background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); border-radius: 4px; padding: 2px 6px; color: #fff; cursor: pointer;"><ha-icon icon="mdi:stop" style="--mdc-icon-size: 14px;"></ha-icon></button>
+                <button @click=${() => this._callCover('close_cover')} style="background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); border-radius: 4px; padding: 2px 6px; color: #fff; cursor: pointer;"><ha-icon icon="mdi:arrow-down" style="--mdc-icon-size: 14px;"></ha-icon></button>
+              </div>
+            </div>
+
+          </div>
+        </div>
+
       </div>
     `;
   }
