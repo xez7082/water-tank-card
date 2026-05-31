@@ -21,7 +21,7 @@ class WaterTankCard extends LitElement {
       _sensorState: { type: String, state: true },
       _alert: { type: Boolean, state: true },
       
-      // Nouvelles propriétés pour les états des entités ajoutées
+      // États pour les entités additionnelles
       _tempCabane: { type: String, state: true },
       _tempMinAnnuelle: { type: String, state: true },
       _tempMaxAnnuelle: { type: String, state: true },
@@ -42,7 +42,6 @@ class WaterTankCard extends LitElement {
     this._sensorState = "--";
     this._alert = false;
 
-    // Initialisation des nouveaux états
     this._tempCabane = "--";
     this._tempMinAnnuelle = "--";
     this._tempMaxAnnuelle = "--";
@@ -66,6 +65,7 @@ class WaterTankCard extends LitElement {
       title: "Cuves IBC",
       subtitle: "Surveillance",
       capacity: 2000,
+      camera_path: "/lovelace/cameras-exterieures", // Chemin par défaut de la page caméras
       ...config
     };
   }
@@ -74,7 +74,6 @@ class WaterTankCard extends LitElement {
     this._hass = hass;
     if (!hass || !this.config) return;
 
-    // Niveau & Volume
     const levelState = hass.states[this.config.tank_level_entity];
     this._level = levelState && !isNaN(parseFloat(levelState.state)) ? parseFloat(levelState.state) : 0;
 
@@ -84,7 +83,6 @@ class WaterTankCard extends LitElement {
       this._volume = Math.round((this._level / 100) * this.config.capacity);
     }
 
-    // Extraction des capteurs standards
     this._inflow = this.config.inflow_entity && hass.states[this.config.inflow_entity] ? hass.states[this.config.inflow_entity].state : "--";
     this._rain = this.config.rain_entity && hass.states[this.config.rain_entity] ? hass.states[this.config.rain_entity].state : "--";
     this._temp = this.config.temp_entity && hass.states[this.config.temp_entity] ? hass.states[this.config.temp_entity].state : "--";
@@ -94,7 +92,7 @@ class WaterTankCard extends LitElement {
     const alertState = this.config.alert_entity && hass.states[this.config.alert_entity];
     this._alert = alertState ? alertState.state === "on" : false;
 
-    // Extraction dynamique des nouvelles entités demandées
+    // Récupération des données secondaires
     const tCabane = hass.states["sensor.tdeg_cabane_temperature"];
     this._tempCabane = tCabane ? `${parseFloat(tCabane.state).toFixed(1)}°C` : "--";
 
@@ -117,13 +115,22 @@ class WaterTankCard extends LitElement {
   get hass() { return this._hass; }
   getCardSize() { return 8; }
 
-  // Méthodes d'interaction pour les commandes et boutons
   _togglePrise() {
     this.hass.callService("switch", "toggle", { entity_id: "switch.prise_beem_maison" });
   }
 
   _callCover(service) {
     this.hass.callService("cover", service, { entity_id: "cover.store_terrasse" });
+  }
+
+  // Action du bouton caméra intégré
+  _navigateToCameras() {
+    const event = new CustomEvent("navigate", {
+      detail: { path: this.config.camera_path },
+      bubbles: true,
+      composed: true
+    });
+    this.dispatchEvent(event);
   }
 
   render() {
@@ -192,17 +199,22 @@ class WaterTankCard extends LitElement {
   renderStats() {
     return html`
       <div class="stats-panel">
-        <div class="stats-header">
-          <div class="stats-title">
+        <div class="stats-header" style="display: flex; justify-content: space-between; align-items: flex-start; width: 100%;">
+          <div class="stats-title" style="display: flex; gap: 10px; align-items: center;">
             <ha-icon icon="mdi:water"></ha-icon>
             <div>
-              <h2>${this.config.title}</h2>
-              <span>${this.config.subtitle}</span>
+              <h2 style="margin: 0; font-size: 1.15rem; font-weight: bold;">${this.config.title}</h2>
+              <span style="font-size: 0.75rem; color: rgba(255,255,255,0.4);">${this.config.subtitle}</span>
             </div>
           </div>
+          
+          <button @click=${this._navigateToCameras} style="display: flex; align-items: center; gap: 6px; background: rgba(52, 211, 153, 0.12); border: 1px solid rgba(52, 211, 153, 0.3); border-radius: 10px; padding: 5px 12px; color: #34d399; font-size: 11px; font-weight: bold; cursor: pointer; transition: all 0.2s; box-shadow: 0 4px 12px rgba(0,0,0,0.15); margin-top: -2px;">
+            <ha-icon icon="mdi:cctv" style="--mdc-icon-size: 14px; color: #34d399;"></ha-icon>
+            Caméras
+          </button>
         </div>
 
-        <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px;">
+        <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; margin-top: 10px;">
           ${this.renderStatCard("mdi:gauge", "#2ea8ff", "Volume mesuré", `${this._volume} L`, `Niveau: ${Math.round(this._level)}%`)}
           ${this.renderStatCard("mdi:water-plus", "#5dff7f", "Pluie Directe", this._inflow, this._inflow !== "--" ? "L" : "")}
           ${this.renderStatCard("mdi:weather-rainy", "#00d2ff", "Précipitations", this._rain, this._rain !== "--" ? "mm" : "")}
